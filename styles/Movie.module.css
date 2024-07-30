@@ -8,10 +8,10 @@
   gap: 30px;
 }
 
-.poster {
-  position: relative;
+.posterContainer {
   aspect-ratio: 27 / 40;
   width: 350px;
+  position: relative;
 }
 
 .info {
@@ -28,6 +28,7 @@
   font-size: 14px;
   line-height: 20px;
 }
+
 :global(.light) .englishTitle {
   color: #505050;
 }

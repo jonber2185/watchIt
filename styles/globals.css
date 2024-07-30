@@ -5,6 +5,7 @@ html {
 body.dark {
   background-color: #121212;
 }
+
 body.dark,
 body.dark a {
   color: #f9f9f9;
@@ -13,6 +14,7 @@ body.dark a {
 body.light {
   background-color: #ededed;
 }
+
 body.light,
 body.light a {
   color: #1e1e1e;

@@ -1,9 +1,35 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import MovieReviewList from '@/components/MovieReviewList';
-import styles from '@/styles/Movie.module.css';
 import axios from '@/lib/axios';
+import styles from '@/styles/Movie.module.css';
+import Head from 'next/head';
 import Image from 'next/image';
+import starImg from '@/public/star-filled.svg';
+import Dropdown from '@/components/Dropdown';
+import Button from '@/components/Button';
+import { useState } from 'react';
+import Spinner from '@/components/Spinner';
+
+export async function getServerSideProps(context) {
+  const id = context.params['id'];
+
+  let movie;
+  try {
+    const response = await axios.get(`/movies/${id}`);
+    movie = response.data;
+  } catch {
+    return {
+      notFound: true,
+    };
+  }
+  
+  const response = await axios.get(`/movie_reviews/?movie_id=${id}`);
+  const movieReviews = response.data.results ?? [];
+
+  return {
+    props: { movie, movieReviews }
+  };
+  
+}
 
 const labels = {
   rating: {
@@ -14,37 +40,46 @@ const labels = {
   },
 };
 
-export default function Movie() {
-  const [movie, setMovie] = useState();
-  const [movieReviews, setMovieReviews] = useState([]);
-  const router = useRouter();
-  const id = router.query['id'];
+export default function Movie({ movie, movieReviews: initialMovieReviews }) {
+  const [movieReviews, setMovieReviews] = useState(initialMovieReviews);
+  const [formValue, setFromValue] = useState({
+    sex: "male",
+    age: 10,
+    starRating: 1,
+  });
 
-  async function loadMovie(targetId) {
-    const res = await axios.get(`/movies/${targetId}`);
-    const nextMovie = res.data;
-    setMovie(nextMovie);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const movieReview = {
+      ...formValue,
+      movieId: movie.id,
+    };
+    const response = await axios.post('/movie_reviews/', movieReview);
+    setMovieReviews((prevMovieReviews) => [response.data, ...prevMovieReviews]);
+  }
+  
+  const handleChange = (name, value) => {
+    setFromValue({
+      ...formValue,
+      [name]: value,
+    });
   }
 
-  async function loadMovieReviews(targetId) {
-    const res = await axios.get(`/movie_reviews/?movie_id=${targetId}`);
-    const nextMovieReviews = res.data.results ?? [];
-    setMovieReviews(nextMovieReviews);
-  }
-
-  useEffect(() => {
-    if (id) {
-      loadMovie(id);
-      loadMovieReviews(id);
-    }
-  }, [id]);
-
-  if (!movie) return null;
+  if (!movie) return (
+    <div className={styles.loading}>
+      <Spinner />
+      <p>로딩중입니다. 잠시만 기다려주세요</p>
+    </div>
+  );
 
   return (
     <>
+      <Head>
+        <title>{movie.title} - watchit</title>
+      </Head>
       <div className={styles.header}>
-        <div className={styles.poster}>
+        <div className={styles.posterContainer}>
           <Image fill src={movie.posterUrl} alt={movie.name} />
         </div>
         <div className={styles.info}>
@@ -69,7 +104,10 @@ export default function Movie() {
               </tr>
               <tr>
                 <th>평점</th>{' '}
-                <td className={styles.starRating}>★{movie.starRating}</td>
+                <td className={styles.starRating}>
+                  <Image src={starImg} alt="★" />
+                  {movie.starRating}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -83,6 +121,54 @@ export default function Movie() {
       <div className={styles.reviewSections}>
         <section>
           <h2 className={styles.sectionTitle}>내 리뷰 작성하기</h2>
+          <form className={styles.reviewForm} onSubmit={handleSubmit}>
+            <label className={styles.label}>
+              성별
+              <Dropdown
+                className={styles.dropdown}
+                name="sex"
+                value={formValue.sex}
+                options={[
+                  { label: '남성', value: 'male' },
+                  { label: '여성', value: 'female' },
+                ]}
+                onChange={handleChange}
+              />
+            </label>
+            <label className={styles.label}>
+              연령
+              <Dropdown
+                className={styles.dropdown}
+                name="age"
+                value={formValue.age}
+                options={[
+                  { label: '10대', value: 10 },
+                  { label: '20대', value: 20 },
+                  { label: '30대', value: 30 },
+                  { label: '40대', value: 40 },
+                  { label: '50대', value: 50 },
+                ]}
+                onChange={handleChange}
+              />
+            </label>
+            <label className={styles.label}>
+              별점
+              <Dropdown
+                className={styles.dropdown}
+                name="starRating"
+                value={formValue.starRating}
+                options={[
+                  { label: '★☆☆☆☆', value: 1 },
+                  { label: '★★☆☆☆', value: 2 },
+                  { label: '★★★☆☆', value: 3 },
+                  { label: '★★★★☆', value: 4 },
+                  { label: '★★★★★', value: 5 },
+                ]}
+                onChange={handleChange}
+              />
+            </label>
+            <Button className={styles.submit}>작성하기</Button>
+          </form>
         </section>
         <section>
           <h2 className={styles.sectionTitle}>리뷰</h2>
